@@ -1,0 +1,138 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body,
+html {
+    overflow: hidden;
+    font-family: 'Josefin Sans', sans-serif;
+}
+
+canvas {
+    background-color: lightblue;
+}
+
+.btn {
+    position: absolute;
+    top: 1rem;
+    right: 1rem;
+    background-color: #fff;
+    padding: .4rem .4rem .2rem .4rem;
+    border-radius: 8px;
+
+    border: 3px solid #000;
+    text-transform: uppercase;
+    cursor: pointer;
+}
+
+.input-box {
+    display: grid;
+    align-items: center;
+    justify-content: center;
+    width: 80%;
+    grid-template-columns: 30% 55% 15%;
+    gap: .5rem;
+}
+
+label {
+    /* flex-basis: 20%; */
+}
+
+input[type=range] {
+    outline: none;
+    overflow: hidden;
+
+}
+
+input[type=text] {
+    outline: none;
+    text-align: center;
+    margin-left: .5rem;
+}
+
+
+.check-box {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: .4rem;
+    width: 100%;
+}
+
+.check-box>div {
+    width: 100%;
+    display: flex;
+    justify-content: space-around;
+    align-items: center;
+}
+
+.check-box>div>label {
+    display: flex;
+    gap: .2rem;
+    justify-content: center;
+
+}
+
+#modal {
+    position: absolute;
+    left: 50%;
+    top: 10%;
+    /* width: 50%; */
+
+    min-height: 100px;
+    transform: translate(-50%);
+    padding: 2.5rem 0 2rem 0;
+    border-radius: 10px;
+
+}
+
+#modal>div {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+
+    gap: .5rem;
+}
+
+.btn:hover {
+    background-color: #ffde00;
+    box-shadow: 1px 1px 5px #fff;
+}
+
+#cancel {
+    background-color: rgb(240, 85, 85);
+    position: absolute;
+    top: .4rem;
+    right: .4rem;
+    padding: .55rem;
+    border-radius: 50%;
+    cursor: pointer;
+}
+
+#cancel::after,
+#cancel::before {
+    content: "";
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    background-color: #fff;
+    width: 80%;
+    height: .15rem;
+}
+
+#cancel::after {
+    transform: translate(-50%, -50%) rotate(45deg);
+}
+
+#cancel::before {
+    transform: translate(-50%, -50%) rotate(-45deg);
+}
+
+@media screen and (max-width:480px) {
+    :root {
+        font-size: 12px;
+    }
+}
