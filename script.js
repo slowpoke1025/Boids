@@ -229,7 +229,7 @@ class Bird {
 
             if (bird === this || !config.predator && bird.predator) continue
             const vector = this.getVector(bird)
-
+            if (Math.atan2(vector.y, vector.x) > Math.PI) continue
             if (vector.length < config.vision) {
                 ++total
                 if (!this.predator) {
