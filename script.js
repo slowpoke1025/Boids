@@ -5,19 +5,19 @@ const config = {
     separation: 1,
     escape: 0.1,
 
-    distance: 80,
+    "sep-vision": 80,
     vision: 80,
     bird_width: 30,
     bird_num: 100,
-    boundary: 80,
-    boundary_force: 0.8,
+    boundary: 150,
+    boundary_force: 1,
     "max-speed(b)": 3,
-    "max-speed(p)": 4,
+    "max-speed(p)": 3.5,
     predator: false,
     predator_num: 2,
     predator_width: 40,
     predator_vision: 80,
-
+    predator_grow: 1,
     vision_show: false,
     sep_vision_show: false,
 }
@@ -40,7 +40,7 @@ predatorImg.src = "./predator.png";
 
 
 const bombImg = new Image()
-bombImg.src = "./explosion.png";
+bombImg.src = "./blood.png";
 
 const modal = document.getElementById("modal")
 const ctrlBtn = document.getElementById("control")
@@ -93,14 +93,14 @@ class Control {
         this.updateNumber = this._updateNumber.bind(this)
         this.range.addEventListener("mousedown", e => {
             this.range.addEventListener("mousemove", this.updateNumber)
+            this.range.addEventListener("touchmove", this.updateNumber)
         })
 
         this.range.addEventListener("mouseup", e => {
             this.range.removeEventListener("mousemove", this.updateNumber)
+            this.range.removeEventListener("touchmove", this.updateNumber)
         })
-        this.range.addEventListener("mouseup", e => {
-            this.range.removeEventListener("mousemove", this.updateNumber)
-        })
+
         this.range.addEventListener("change", e => {
             config[this.name] = Number(this.range.value)
             this.number.value = this.range.value
@@ -110,21 +110,27 @@ class Control {
         this.number.value = this.range.value
     }
 }
+
+
+
+
+if (canvas.width < 480 && ("ontouchstart" in document.documentElement)) {
+    config.bird_num = 50;
+    config.bird_width = 15;
+    config.vision = 50
+    config["sep-vision"] = 50
+}
 new Control("alignment", { value: config.alignment, min: 0, max: 1, step: 0.1 })
 new Control("cohesion", { value: config.cohesion, min: 0, max: 1, step: 0.1 })
 new Control("separation", { value: config.separation, min: 0, max: 5, step: 0.1 })
 new Control("escape", { value: config.escape, min: 0, max: 1, step: 0.05 })
 new Control("vision", { value: config.vision, min: 0, max: 200, step: 10 })
-new Control("distance", { value: config.distance, min: 0, max: 200, step: 10 })
+new Control("sep-vision", { value: config["sep-vision"], min: 0, max: 200, step: 10 })
+new Control("boundary", { value: config.boundary, min: 0, max: 500, step: 10 })
+
+
 new Control("max-speed(b)", { value: config["max-speed(b)"], min: 0, max: 5, step: 0.5 })
 new Control("max-speed(p)", { value: config["max-speed(p)"], min: 0, max: 5, step: 0.5 })
-
-
-
-if (("ontouchstart" in document.documentElement)) {
-    config.bird_num = 50;
-    config.bird_width = 15;
-}
 
 window.addEventListener("resize", e => {
     canvas.width = window.innerWidth
@@ -177,21 +183,21 @@ class Bird {
     }
 
     detectBoundary() {
-        // if (this.x > (canvas.width - config.boundary)) { this.vx -= config.boundary / (canvas.width - this.x) / (canvas.width - this.x) }
-        // else if (this.x < config.boundary) { this.vx += config.boundary / this.x / this.x }
+        if (this.x + this.vx > (canvas.width - config.bird_width - config.boundary)) { this.vx -= config.boundary / (canvas.width - config.bird_width - this.x) ** 2 }
+        else if (this.x + this.vx < config.boundary) { this.vx += config.boundary / this.x / this.x }
 
-        // if (this.y > (canvas.height - config.boundary)) { this.vy -= config.boundary / (canvas.height - this.y) / (canvas.height - this.y) }
-        // else if (this.y < config.boundary) { this.vy += config.boundary / this.y / this.y }
+        if (this.y + this.vy > (canvas.height - config.bird_width - config.boundary)) { this.vy -= config.boundary / (canvas.height - config.bird_width - this.y) ** 2 }
+        else if (this.y + this.vy < config.boundary) { this.vy += config.boundary / this.y / this.y }
 
-        if (this.x > (canvas.width - config.bird_width / 2 - config.boundary))
-            this.vx -= config.boundary_force
-        else if (this.x < config.boundary)
-            this.vx += config.boundary_force
+        // if (this.x + this.vx > (canvas.width - config.bird_width / 2 - config.boundary))
+        //     this.vx -= config.boundary_force
+        // else if (this.x + this.vx < config.boundary)
+        //     this.vx += config.boundary_force
 
-        if (this.y > (canvas.height - config.bird_width / 2 - config.boundary))
-            this.vy -= config.boundary_force
-        else if (this.y < config.boundary)
-            this.vy += config.boundary_force
+        // if (this.y + this.vy > (canvas.height - config.bird_width / 2 - config.boundary))
+        //     this.vy -= config.boundary_force
+        // else if (this.y + this.vy < config.boundary)
+        //     this.vy += config.boundary_force
 
     }
 
@@ -226,19 +232,21 @@ class Bird {
 
             if (vector.length < config.vision) {
                 ++total
-                alignment.x += bird.vx
-                alignment.y += bird.vy
+                if (!this.predator) {
+                    alignment.x += bird.vx
+                    alignment.y += bird.vy
+                }
                 cohesion.x += vector.x
                 cohesion.y += vector.y
             }
 
-            if (vector.length < config.distance) {
-                separation.x += -vector.x / vector.length / vector.length * config.distance;
-                separation.y += -vector.y / vector.length / vector.length * config.distance;
+            if (vector.length < config["sep-vision"]) {
+                separation.x += -vector.x / vector.length ** 2 * config["sep-vision"];
+                separation.y += -vector.y / vector.length ** 2 * config["sep-vision"];
             }
         }
 
-        if (config.predator && !this.predator) {
+        if (config.predator && !this.demo) {
             for (const p of Predators) {
                 const vector = this.getVector(p)
                 if (vector.length < config.vision) {
@@ -249,22 +257,26 @@ class Bird {
             }
         }
 
-        if (total === 0) return
+        if (total > 0) {
+            this.f.x =
+                alignment.x / total * config.alignment
+                + cohesion.x / total * config.cohesion
+                + separation.x * config.separation
 
-        this.f.x +=
-            alignment.x / total * config.alignment
-            + cohesion.x / total * config.cohesion
-            + separation.x * config.separation
+            this.f.y =
+                alignment.y / total * config.alignment
+                + cohesion.y / total * config.cohesion
+                + separation.y * config.separation
+        }
 
-        this.f.y +=
-            alignment.y / total * config.alignment
-            + cohesion.y / total * config.cohesion
-            + separation.y * config.separation
 
-        if (pTotal === 0) return
 
-        this.f.x += escape.x / pTotal * config.escape
-        this.f.y += escape.y / pTotal * config.escape
+        if (pTotal > 0) {
+            this.f.x += escape.x / pTotal * config.escape
+            this.f.y += escape.y / pTotal * config.escape
+        }
+
+
     }
 }
 class DemoBird extends Bird {
@@ -284,10 +296,40 @@ class DemoBird extends Bird {
         if (config.sep_vision_show) {
             ctx.strokeStyle = "blue"
             ctx.beginPath();
-            ctx.arc(this.x + config.bird_width / 2, this.y + config.bird_width / 2, config.distance, 0, 2 * Math.PI);
+            ctx.arc(this.x + config.bird_width / 2, this.y + config.bird_width / 2, config["sep-vision"], 0, 2 * Math.PI);
             ctx.stroke();
         }
     }
+}
+
+const Bombs = []
+class Bomb {
+    constructor(x, y) {
+        this.flag = true
+        this.x = x
+        this.y = y
+        this.width = 512
+        this.sprite = 0
+        this.maxSprite = 6
+    }
+    draw() {
+        ctx.drawImage(bombImg, this.sprite * this.width, 0, this.width, this.width, this.x, this.y, config.bird_width * 1.1, config.bird_width * 1.1)
+    }
+    update() {
+        if (this.flag) {
+            ++this.sprite
+            this.flag = false
+            if (this.sprite === this.maxSprite) {
+                const i = Bombs.findIndex(b => b === this)
+                Bombs.splice(i, 1);
+                return
+            }
+            setTimeout(() => {
+                this.flag = true
+            }, 80)
+        }
+    }
+
 }
 
 class Predator extends Bird {
@@ -302,15 +344,55 @@ class Predator extends Bird {
             this.vy = this.vy / speed * config["max-speed(p)"]
         }
     }
+    update() {
+        super.update()
+        if (true) {
+            for (const bird of Birds) {
+                if (!bird.demo && !bird.predator && collision(bird, this)) {
+                    Bombs.push(new Bomb(bird.x, bird.y))
+                    const i = Birds.findIndex(b => b === bird)
+                    Birds.splice(i, 1);
+                    config.predator_grow *= 1.01
+                }
+            }
+        }
+    }
+    generateForce() {
+        this.f.x = 0
+        this.f.y = 0
 
-    detectBoundary() {
-        if (this.x > (canvas.width - config.boundary)) { this.vx -= config.boundary / (canvas.width - this.x) / (canvas.width - this.x) }
-        else if (this.x < config.boundary) { this.vx += config.boundary / this.x / this.x }
+        const cohesion = { x: 0, y: 0 }
 
-        if (this.y > (canvas.height - config.boundary)) { this.vy -= config.boundary / (canvas.height - this.y) / (canvas.height - this.y) }
-        else if (this.y < config.boundary) { this.vy += config.boundary / this.y / this.y }
+
+        let total = 0
+
+
+        for (const bird of Birds) {
+            if (bird.demo) continue
+            const vector = this.getVector(bird)
+            if (vector.length < config.vision) {
+                ++total
+                cohesion.x += vector.x
+                cohesion.y += vector.y
+            }
+        }
+
+
+        if (total > 0) {
+            this.f.x = cohesion.x / total * config.cohesion
+            this.f.y = cohesion.y / total * config.cohesion
+        }
+
 
     }
+    // detectBoundary() {
+    //     if (this.x + this.vx > (canvas.width - config.bird_width - config.boundary)) { this.vx -= config.boundary / (canvas.width - config.bird_width - this.x) / (canvas.width - config.bird_width - this.x) }
+    //     else if (this.x + this.vx < config.boundary) { this.vx += config.boundary / this.x / this.x }
+
+    //     if (this.y + this.vy > (canvas.height - config.bird_width - config.boundary)) { this.vy -= config.boundary / (canvas.height - config.bird_width - this.y) / (canvas.height - config.bird_width - this.y) }
+    //     else if (this.y + this.vy < config.boundary) { this.vy += config.boundary / this.y / this.y }
+
+    // }
     draw() {
         ctx.save();
         ctx.translate(this.x + config.bird_width / 2, this.y + config.bird_width / 2)
@@ -318,7 +400,7 @@ class Predator extends Bird {
         // ctx.fillRect(-config.bird_width / 2, -config.bird_width / 2, config.bird_width, config.bird_width)
         // ctx.drawImage(this.img, this.sprite * this.width, 0, this.width, this.width, -config.bird_width / 2, -config.bird_width / 2, config.bird_width, config.bird_width)
 
-        ctx.drawImage(this.img, -config.bird_width / 2, -config.bird_width / 2, config.bird_width * 1.1, config.bird_width * 1.1)
+        ctx.drawImage(this.img, -config.bird_width / 2, -config.bird_width / 2, config.bird_width * config.predator_grow, config.bird_width * config.predator_grow)
 
         ctx.restore()
     }
@@ -333,7 +415,7 @@ Birds.push(new DemoBird(demoImg))
 for (let index = 0; index < config.predator_num; index++) {
     const p = new Predator(predatorImg)
     Predators.push(p)
-    Birds.push(p)
+    // Birds.push(p)
 }
 animate()
 
@@ -341,13 +423,26 @@ animate()
 function animate() {
 
     ctx.clearRect(0, 0, canvas.width, canvas.height)
-
+    // ctx.fillStyle = "skyblue"
+    // ctx.fillRect(0, 0, canvas.width, config.boundary)
+    // ctx.fillRect(0, canvas.height, canvas.width, -config.boundary)
+    // ctx.fillRect(0, 0, config.boundary, canvas.height)
+    // ctx.fillRect(canvas.width, 0, -config.boundary, canvas.height)
     for (const bird of Birds) {
-        if (!config.predator && bird.predator)
-            continue
         bird.generateForce()
         bird.update()
         bird.draw()
+    }
+    if (config.predator) {
+        for (const predator of Predators) {
+            predator.generateForce()
+            predator.update()
+            predator.draw()
+        }
+    }
+    for (const b of Bombs) {
+        b.draw()
+        b.update()
     }
 
     requestAnimationFrame(animate)
@@ -360,10 +455,10 @@ function random(max, min = 0) {
     return Math.random() * (max - min) + min
 }
 
-// function collision(bird, predator) {
-//     const flag = bird.x > predator.x + config.predator_width ||
-//         bird.x + config.bird_width < predator.x ||
-//         bird.y >= predator.y + config.predator_width ||
-//         bird.y + config.bird_width <= predator.y;
-//     return !flag;
-// }
+function collision(bird, predator) {
+    const flag = bird.x > predator.x + config.bird_width * config.predator_grow ||
+        bird.x + config.bird_width < predator.x ||
+        bird.y >= predator.y + config.bird_width * config.predator_grow ||
+        bird.y + config.bird_width <= predator.y;
+    return !flag;
+}
