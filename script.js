@@ -3,7 +3,7 @@ const config = {
     alignment: 1,
     cohesion: 0.1,
     separation: 1,
-    escape: 0.1,
+    repulsion: 0.1,
 
     "sep-vision": 80,
     vision: 80,
@@ -17,7 +17,6 @@ const config = {
     predator_num: 2,
     predator_width: 40,
     predator_vision: 80,
-    predator_grow: 1,
     vision_show: false,
     sep_vision_show: false,
 }
@@ -123,13 +122,13 @@ if (canvas.width < 480 && ("ontouchstart" in document.documentElement)) {
 new Control("alignment", { value: config.alignment, min: 0, max: 1, step: 0.1 })
 new Control("cohesion", { value: config.cohesion, min: 0, max: 1, step: 0.1 })
 new Control("separation", { value: config.separation, min: 0, max: 5, step: 0.1 })
-new Control("escape", { value: config.escape, min: 0, max: 1, step: 0.05 })
-new Control("vision", { value: config.vision, min: 0, max: 200, step: 10 })
-new Control("sep-vision", { value: config["sep-vision"], min: 0, max: 200, step: 10 })
+new Control("repulsion", { value: config.repulsion, min: 0, max: 1, step: 0.05 })
+new Control("vision", { value: config.vision, min: 0, max: 500, step: 10 })
+new Control("sep-vision", { value: config["sep-vision"], min: 0, max: 500, step: 10 })
 new Control("boundary", { value: config.boundary, min: 0, max: 500, step: 10 })
 
 
-new Control("max-speed(b)", { value: config["max-speed(b)"], min: 0, max: 5, step: 0.5 })
+new Control("max-speed(b)", { value: config["max-speed(b)"], min: 0, max: 10, step: 0.5 })
 new Control("max-speed(p)", { value: config["max-speed(p)"], min: 0, max: 5, step: 0.5 })
 
 window.addEventListener("resize", e => {
@@ -142,9 +141,14 @@ ctrlBtn.addEventListener("click", e => {
     e.stopPropagation()
 })
 
+let start = false
 cancelBtn.addEventListener("click", e => {
     modal.close()
     e.stopPropagation()
+    if (!start) {
+        animate()
+        start = true
+    }
 })
 
 
@@ -221,7 +225,7 @@ class Bird {
         const alignment = { x: 0, y: 0 }
         const cohesion = { x: 0, y: 0 }
         const separation = { x: 0, y: 0 }
-        const escape = { x: 0, y: 0 }
+        const repulsion = { x: 0, y: 0 }
         let total = 0
         let pTotal = 0
 
@@ -251,8 +255,8 @@ class Bird {
                 const vector = this.getVector(p)
                 if (vector.length < config.vision) {
                     ++pTotal
-                    escape.x += -vector.x
-                    escape.y += -vector.y
+                    repulsion.x += -vector.x
+                    repulsion.y += -vector.y
                 }
             }
         }
@@ -272,8 +276,8 @@ class Bird {
 
 
         if (pTotal > 0) {
-            this.f.x += escape.x / pTotal * config.escape
-            this.f.y += escape.y / pTotal * config.escape
+            this.f.x += repulsion.x / pTotal * config.repulsion
+            this.f.y += repulsion.y / pTotal * config.repulsion
         }
 
 
@@ -336,6 +340,7 @@ class Predator extends Bird {
     constructor(img, x, y) {
         super(img, x, y)
         this.predator = true
+        this.grow = 1;
     }
     limitSpeed() {
         const speed = Math.sqrt(this.vx * this.vx + this.vy * this.vy)
@@ -352,7 +357,7 @@ class Predator extends Bird {
                     Bombs.push(new Bomb(bird.x, bird.y))
                     const i = Birds.findIndex(b => b === bird)
                     Birds.splice(i, 1);
-                    config.predator_grow *= 1.01
+                    this.grow *= 1.01
                 }
             }
         }
@@ -400,7 +405,7 @@ class Predator extends Bird {
         // ctx.fillRect(-config.bird_width / 2, -config.bird_width / 2, config.bird_width, config.bird_width)
         // ctx.drawImage(this.img, this.sprite * this.width, 0, this.width, this.width, -config.bird_width / 2, -config.bird_width / 2, config.bird_width, config.bird_width)
 
-        ctx.drawImage(this.img, -config.bird_width / 2, -config.bird_width / 2, config.bird_width * config.predator_grow, config.bird_width * config.predator_grow)
+        ctx.drawImage(this.img, -config.bird_width / 2, -config.bird_width / 2, config.bird_width * this.grow, config.bird_width * this.grow)
 
         ctx.restore()
     }
@@ -417,7 +422,9 @@ for (let index = 0; index < config.predator_num; index++) {
     Predators.push(p)
     // Birds.push(p)
 }
-animate()
+
+modal.showModal()
+
 
 
 function animate() {
@@ -456,9 +463,9 @@ function random(max, min = 0) {
 }
 
 function collision(bird, predator) {
-    const flag = bird.x > predator.x + config.bird_width * config.predator_grow ||
+    const flag = bird.x > predator.x + config.bird_width * predator.grow ||
         bird.x + config.bird_width < predator.x ||
-        bird.y >= predator.y + config.bird_width * config.predator_grow ||
+        bird.y >= predator.y + config.bird_width * predator.grow ||
         bird.y + config.bird_width <= predator.y;
     return !flag;
 }
